@@ -1,0 +1,14 @@
+# Only public build inputs; never send enrollment files or local credentials.
+**
+!Dockerfile
+!.dockerignore
+!src/
+!src/**
+!tests/
+!tests/ibcalpha/
+!tests/ibcalpha/**
+!find-java.sh
+!run-gateway.sh
+!run-ui-tests.sh
+!COPYING.txt
+!README.md

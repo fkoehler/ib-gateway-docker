@@ -1,0 +1,25 @@
+# Run from this directory: docker compose build && docker compose up -d
+services:
+  ib-gateway:
+    build: .
+    image: ib-gateway-totp:local
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      TWS_USERID: ${TWS_USERID:?Set the enrolled IBKR username}
+      TWS_PASSWORD_FILE: /run/secrets/ib_password
+      TRADING_MODE: ${TRADING_MODE:-paper}
+      TWOFA_DEVICE: Mobile Authenticator app
+      TOTP_SECRET_FILE: /run/secrets/ib_totp
+      READ_ONLY_API: ${READ_ONLY_API:-yes}
+    secrets:
+      - ib_password
+      - ib_totp
+    ports:
+      - "127.0.0.1:4001:4003"
+      - "127.0.0.1:4002:4004"
+secrets:
+  ib_password:
+    file: ${TWS_PASSWORD_PATH:?Set an existing password file path}
+  ib_totp:
+    file: ${TOTP_SECRET_PATH:?Set an existing Base32 secret file path}
