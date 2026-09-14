@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-java_bin=$(/opt/ib-gateway-totp/find-java.sh)
+java_bin=$("${IBC_PATH}/totp/find-java.sh")
 export DISPLAY=:98
 export TOTP_SECRET_FILE=/tmp/totp-public-test-vector
 Xvfb "$DISPLAY" -ac -screen 0 1024x768x16 >/tmp/totp-xvfb.log 2>&1 &
@@ -15,7 +15,7 @@ while [ ! -S /tmp/.X11-unix/X98 ]; do
 	fi
 	sleep 0.1
 done
-"$java_bin" -cp /home/ibgateway/ibc/IBC.jar:/tmp/totp-test-classes ibcalpha.ibc.TotpTest
-"$java_bin" -cp /home/ibgateway/ibc/IBC.jar:/tmp/totp-test-classes ibcalpha.ibc.TotpDialogTest
+"$java_bin" -cp "${IBC_PATH}/IBC.jar:/tmp/totp-test-classes" ibcalpha.ibc.TotpTest
+"$java_bin" -cp "${IBC_PATH}/IBC.jar:/tmp/totp-test-classes" ibcalpha.ibc.TotpDialogTest
 unset TOTP_SECRET_FILE
-"$java_bin" -cp /home/ibgateway/ibc/IBC.jar:/tmp/totp-test-classes ibcalpha.ibc.TotpDialogTest
+"$java_bin" -cp "${IBC_PATH}/IBC.jar:/tmp/totp-test-classes" ibcalpha.ibc.TotpDialogTest

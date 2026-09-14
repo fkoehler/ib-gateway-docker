@@ -1,8 +1,9 @@
-# Run from this directory: docker compose build && docker compose up -d
+# Build the normal Gateway image first; see README.md.
 services:
   ib-gateway:
-    build: .
-    image: ib-gateway-totp:local
+    build:
+      context: ../../stable
+    image: ib-gateway:totp-test
     pull_policy: never
     restart: unless-stopped
     environment:

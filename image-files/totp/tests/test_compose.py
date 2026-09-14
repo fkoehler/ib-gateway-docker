@@ -11,6 +11,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ComposeTest(unittest.TestCase):
+    def test_standard_compose_leaves_totp_disabled_by_default(self):
+        environment = {key: value for key, value in os.environ.items()
+                       if not key.startswith(("TWS_", "TOTP_"))}
+        result = subprocess.run([
+            "docker", "compose", "--env-file", "/dev/null", "-f",
+            str(ROOT.parents[1] / "docker-compose.yml"), "config", "--format", "json",
+        ], env=environment, capture_output=True, text=True, check=False, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        env = json.loads(result.stdout)["services"]["ib-gateway"]["environment"]
+        self.assertEqual(env["TOTP_SECRET_FILE"], "")
+        self.assertEqual(env["TWOFA_DEVICE"], "")
+
     def render(self, missing=None):
         environment = {
             key: value for key, value in os.environ.items()
@@ -44,7 +56,7 @@ class ComposeTest(unittest.TestCase):
         self.assertEqual({p["host_ip"] for p in gateway["ports"]}, {"127.0.0.1"})
         self.assertEqual({s["source"] for s in gateway["secrets"]}, {"ib_password", "ib_totp"})
         self.assertEqual(config["secrets"]["ib_totp"]["file"], "/public-test/totp")
-        self.assertEqual(gateway["build"]["context"], str(ROOT))
+        self.assertEqual(gateway["build"]["context"], str(ROOT.parents[1] / "stable"))
         self.assertEqual(gateway["pull_policy"], "never")
 
     def test_required_configuration_is_not_silently_empty(self):

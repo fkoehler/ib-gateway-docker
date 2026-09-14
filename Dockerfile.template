@@ -53,14 +53,28 @@ RUN apt-get update -y && \
 COPY ./config/ibgateway/jts.ini.tmpl /root/Jts/jts.ini.tmpl
 COPY ./config/ibc/config.ini.tmpl /root/ibc/config.ini.tmpl
 
+# Keep modified IBC sources and their license alongside the runtime jar.
+COPY ./totp/src /root/ibc/totp/src
+COPY ./totp/COPYING.txt ./totp/README.md /root/ibc/totp/
+COPY --chmod=755 ./totp/find-java.sh /root/ibc/totp/
+
 # Copy scripts
 COPY ./scripts /root/scripts
+
+# Compile in a separate stage so the JDK never enters the runtime image.
+FROM setup AS totp-build
+RUN apt-get update -y && \
+  apt-get install --no-install-recommends --yes openjdk-17-jdk-headless && \
+  rm -rf /var/lib/apt/lists/*
+COPY ./totp/tests/ibcalpha /tmp/totp-tests/ibcalpha
+COPY --chmod=755 ./totp/build.sh /tmp/build-totp.sh
+RUN /tmp/build-totp.sh /root/ibc
 
 ##############################################################################
 # Build Stage: build production image
 ##############################################################################
 
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS runtime
 
 ENV IB_GATEWAY_VERSION=$VERSION
 # IB Gateway user constants
@@ -80,7 +94,7 @@ ENV GATEWAY_OR_TWS=gateway
 ARG DEBIAN_FRONTEND=noninteractive
 # Copy files
 COPY --from=setup /usr/local/ /usr/local/
-COPY --chown=${USER_ID}:${USER_GID} --from=setup /root/ ${HOME}
+COPY --chown=${USER_ID}:${USER_GID} --from=totp-build /root/ ${HOME}
 
 # Prepare system
 RUN apt-get update -y && \
@@ -113,3 +127,13 @@ LABEL org.opencontainers.image.url=https://github.com/gnzsnz/ib-gateway-docker/p
 LABEL org.opencontainers.image.description="Docker image with IB Gateway and IBC "
 LABEL org.opencontainers.image.licenses="Apache License Version 2.0"
 LABEL org.opencontainers.image.version=${IB_GATEWAY_VERSION}-${IB_GATEWAY_RELEASE_CHANNEL}
+
+# Exercise the patched handler using the final image's Java runtime, without IB access.
+FROM runtime AS totp-tested
+COPY --from=totp-build /tmp/totp-test-classes /tmp/totp-test-classes
+COPY --chmod=755 ./totp/run-ui-tests.sh /tmp/run-totp-tests.sh
+RUN --network=none /tmp/run-totp-tests.sh
+
+# Enforce the test dependency without including the test fixtures in the image.
+FROM runtime AS final
+COPY --chown=${USER_ID}:${USER_GID} --from=totp-tested /home/ibgateway/ibc/IBC.jar /home/ibgateway/ibc/IBC.jar

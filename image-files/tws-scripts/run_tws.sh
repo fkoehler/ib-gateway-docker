@@ -4,6 +4,14 @@
 
 set -Eeo pipefail
 
+# Validate opt-in TOTP before starting services or attempting a login.
+# shellcheck disable=SC1091
+source "${SCRIPT_PATH}/totp.sh"
+configure_totp
+if [ "${1:-}" = --check-totp-config ]; then
+	exit 0
+fi
+
 echo "*************************************************************************"
 echo ".> Starting IBC/TWS"
 echo "*************************************************************************"

@@ -83,6 +83,7 @@ services:
       RELOGIN_AFTER_TWOFA_TIMEOUT: ${RELOGIN_AFTER_TWOFA_TIMEOUT:-no}
       TWOFA_EXIT_INTERVAL: ${TWOFA_EXIT_INTERVAL:-60}
       TWOFA_DEVICE: ${TWOFA_DEVICE:-}
+      TOTP_SECRET_FILE: ${TOTP_SECRET_FILE:-}
       EXISTING_SESSION_DETECTED_ACTION: ${EXISTING_SESSION_DETECTED_ACTION:-primary}
       ALLOW_BLIND_TRADING: ${ALLOW_BLIND_TRADING:-no}
       TIME_ZONE: ${TIME_ZONE:-Etc/UTC}
@@ -190,6 +191,7 @@ All environment variables are common between ibgateway and TWS image, unless spe
 | `VNC_SERVER_PASSWORD_FILE`  | VNC server password. If not defined, then VNC server will NOT start. Specific to ibgateway, ignored by TWS. | **not defined** (VNC disabled) |
 | `TWOFA_TIMEOUT_ACTION`      | 'exit' or 'restart', set to 'restart if you set `AUTO_RESTART_TIME`. See IBC [documentation](https://github.com/IbcAlpha/IBC/blob/master/userguide.md#second-factor-authentication)  | exit  |
 | `TWOFA_DEVICE` | second factor authentication device. See IBC [documentation](https://github.com/IbcAlpha/IBC/blob/c98d0bcc2ead9b8ab3900a23a707f01f8fd7dfbc/resources/config.ini#L104) | **not defined** |
+| `TOTP_SECRET_FILE` | [Gateway TOTP](#automatic-totp-authentication) | unset |
 | `TWOFA_EXIT_INTERVAL` | It controls how long (in seconds) IBC waits for login to complete after the user acknowledges the second factor authentication. See [IBC documentation](https://github.com/IbcAlpha/IBC/blob/38593af5193ccd634aa226cc66242adc8718b653/resources/config.ini#L147) | 60 seconds |
 | `BYPASS_WARNING` | Settings relate to the corresponding 'Precautions' checkboxes in the API section of the Global Configuration dialog. Accepted values `yes`, `no` if not set, the existing TWS/Gateway configuration is unchanged  | **not defined**                                      |
 | `AUTO_RESTART_TIME`  | time to restart IB Gateway, does not require daily 2FA validation. format hh:mm AM/PM. See IBC [documentation](https://github.com/IbcAlpha/IBC/blob/master/userguide.md#ibc-user-guide) | **not defined**  |
@@ -548,6 +550,35 @@ secrets:
 ```
 
 In "discussion" section you will find full examples for [ib-gateway](https://github.com/gnzsnz/ib-gateway-docker/discussions/103) and [tws-rdesktop](https://github.com/gnzsnz/ib-gateway-docker/discussions/105)
+
+### Automatic TOTP authentication
+
+The standard Gateway image can generate and enter IBKR Mobile Authenticator
+codes when `TOTP_SECRET_FILE` points to a mounted Base32 enrollment-secret file.
+No separate image is needed. Authentication remains unchanged when it is unset.
+
+```yaml
+services:
+  ib-gateway:
+    environment:
+      TOTP_SECRET_FILE: /run/secrets/ib_totp
+    secrets:
+      - ib_totp
+secrets:
+  ib_totp:
+    file: ./secrets/ib_totp
+```
+
+The username must already have Mobile Authenticator enrolled. TOTP defaults
+`TWOFA_DEVICE` to `Mobile Authenticator app`; it does not enroll/reset a factor.
+Automatic TOTP currently supports English Gateway prompts and one username per
+container (`live` or `paper`), not TWS or dual mode. Inline `TOTP_SECRET` is rejected.
+
+The secret file must be readable by the container user and protected on the host.
+Keep the host clock synchronized. Storing both the password and enrollment secret
+on one server reduces factor independence if that server is compromised.
+See [TOTP configuration, compatibility, and tests](image-files/totp/README.md)
+for failure handling, logging restrictions, and a complete Compose example.
 
 ### RDP
 

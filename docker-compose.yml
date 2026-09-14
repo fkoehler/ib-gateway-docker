@@ -27,6 +27,7 @@ services:
       RELOGIN_AFTER_TWOFA_TIMEOUT: ${RELOGIN_AFTER_TWOFA_TIMEOUT:-no}
       TWOFA_EXIT_INTERVAL: ${TWOFA_EXIT_INTERVAL:-60}
       TWOFA_DEVICE: ${TWOFA_DEVICE:-}
+      TOTP_SECRET_FILE: ${TOTP_SECRET_FILE:-}
       EXISTING_SESSION_DETECTED_ACTION: ${EXISTING_SESSION_DETECTED_ACTION:-primary}
       ALLOW_BLIND_TRADING: ${ALLOW_BLIND_TRADING:-no}
       TIME_ZONE: ${TIME_ZONE:-Etc/UTC}
@@ -51,6 +52,7 @@ services:
     #      - ${PWD}/tws_settings/:${TWS_SETTINGS_PATH:-/home/ibgateway/tws_settings}
     #      - ${PWD}/ssh/:/home/ibgateway/.ssh
     #      - ${PWD}/scripts:/home/ibgateway/init-scripts
+    #      - ${PWD}/secrets/ib_totp:/run/secrets/ib_totp:ro
     ports:
       - "127.0.0.1:4001:4003"
       - "127.0.0.1:4002:4004"

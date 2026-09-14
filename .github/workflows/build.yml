@@ -15,12 +15,16 @@ jobs:
     name: Build ibgateway & TWS
 
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
 
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Generate image from source
+        run: |
+          version=$(sed -n 's/^ENV IB_GATEWAY_VERSION=//p' "$CHANNEL/Dockerfile" | head -n 1)
+          ./update.sh "$CHANNEL" "$version"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -58,6 +62,12 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Load Gateway image for startup tests
+        run: docker buildx build --platform linux/amd64 --load --tag ib-gateway:totp-test "$CHANNEL"
+
+      - name: Test startup and Compose configuration without broker credentials
+        run: python3 -m unittest discover -s image-files/totp/tests -p 'test_*.py' -v
 
       ###############################################################
       #   Build tws
